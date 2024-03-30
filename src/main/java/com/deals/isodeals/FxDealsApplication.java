@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class IsoDealsApplication {
+public class FxDealsApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(IsoDealsApplication.class, args);
+        SpringApplication.run(FxDealsApplication.class, args);
     }
 
 }
