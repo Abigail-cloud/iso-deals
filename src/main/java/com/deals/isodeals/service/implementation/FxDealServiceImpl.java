@@ -1,6 +1,7 @@
 package com.deals.isodeals.service.implementation;
 
 import com.deals.isodeals.entity.FxEntity;
+import com.deals.isodeals.exception.CustomApiException;
 import com.deals.isodeals.exception.ValidationDealException;
 import com.deals.isodeals.repository.FxRepository;
 import com.deals.isodeals.service.FxDealService;
@@ -13,9 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class FxDealServiceImpl implements FxDealService {
@@ -42,21 +41,35 @@ public class FxDealServiceImpl implements FxDealService {
 
     @Override
     public Page<FxDTO> getAllDealRequest(Pageable pageable) {
-        return null;
+        return dealsRepository.findAll(pageable).map(dealMapper::toDto);
     }
 
     @Override
-    public FxDTO getSingleDeal(String uniqueDealId) {
-        return null;
+    public Optional<FxDTO> getSingleDeal(String uniqueDealId) {
+        return dealsRepository.getIsoEntityByUniqueDealId(uniqueDealId).map(dealMapper ::toDto);
     }
 
     @Override
     public FxDTO updateDeal(FxDTO fxDTO, String uniqueDealId) {
-        return null;
+        Optional<FxDTO> fxDeal = dealsRepository.getIsoEntityByUniqueDealId(uniqueDealId).map(dealMapper::toDto);
+        List<ValidatorError> validatorErrorList = dealValidation.validateNewDeal(fxDTO);
+        if (!CollectionUtils.isEmpty(validatorErrorList)) throw new ValidationDealException(validatorErrorList, "Deal is empty or incorrect");
+        FxDTO updateFx = fxDeal.get();
+        updateFx.setFromIsoCurrency(fxDTO.getFromIsoCurrency());
+        updateFx.setToIsoCurrency(fxDTO.getToIsoCurrency());
+        updateFx.setDealAmount(fxDTO.getDealAmount());
+        updateFx.setDealTimestamp(new Date().toInstant());
+//            Now let's convert FX-DTO to FXEntity
+        FxEntity entity = dealMapper.toEntity(updateFx);
+        dealsRepository.save(entity);
+        return updateFx;
     }
 
     @Override
     public FxDTO deleteDeal(String uniqueDealId) {
-        return null;
+        FxEntity fx = dealsRepository.getIsoEntityByUniqueDealId(uniqueDealId).orElseThrow(()->new CustomApiException("Deal not found" + uniqueDealId));
+        fx.setDeleted(true);
+        dealsRepository.save(fx);
+         return dealMapper.toDto(fx);
     }
 }
